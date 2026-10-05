@@ -1,7 +1,8 @@
 appname=pickup.codes
-version=1.2.2
+version=1.2.3
 display_name=取件码展示
-desc=快递取件码管理系统，支持手动录入或AI录入取件码、实时展示、状态管理。实时同步推送，多分组视图，管理后台密码保护。
+desc=快递取件码管理系统，支持手动录入、AI 拍照识别及淘宝/拼多多订单自动采集取件码，实时大屏展示、多状态跟踪与分组视图，SSE 实时同步，管理后台密码保护。新增扫码登录、账号管理与同步日志。
+changelog=新增淘宝/拼多多订单自动采集（扫码登录与 Cookie 接入）、待发货与运输中状态跟踪、账号管理面板与同步日志；优化 SSE 实时推送、fnOS 网关 Unix Socket 接入、数据库自动迁移与管理页筛选；修复在途订单误判、去重与单号查询失效、已签收包裹误入待取列表等问题。
 platform=all
 source=thirdparty
 maintainer=YUNXI

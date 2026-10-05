@@ -1,6 +1,6 @@
 {
   "name": "package-pickup",
-  "version": "1.0.0",
+  "version": "1.2.3",
   "description": "快递取件码展示系统",
   "main": "server.js",
   "scripts": {
