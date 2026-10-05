@@ -1,0 +1,13 @@
+{
+    ".url": {
+        "pickup.codes.main": {
+            "title": "取件码展示",
+            "icon": "images/icon-{0}.png",
+            "type": "iframe",
+            "url": "/app/pickup-codes",
+            "gatewaySocket": "app.sock",
+            "gatewayPrefix": "/app/pickup-codes",
+            "allUsers": true
+        }
+    }
+}

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+export PATH=/var/apps/nodejs_v22/target/bin:/var/apps/nodejs_v20/target/bin:/var/apps/nodejs_v18/target/bin:/usr/local/bin:/usr/bin:$PATH
+
+NODE="$(command -v node 2>/dev/null)"
+
+if [ -z "$NODE" ]; then
+    echo "Node.js 环境不可用，请先确认已安装并启动 nodejs_v22 依赖应用" > ${TRIM_TEMP_LOGFILE}
+    exit 1
+fi
+
+exit 0

@@ -1,0 +1,50 @@
+[
+    {
+        "stepTitle": "服务配置",
+        "items": [
+            {
+                "type": "password",
+                "field": "wizard_admin_password",
+                "label": "管理密码（留空则不启用）",
+                "initValue": "",
+                "rules": []
+            },
+            {
+                "type": "text",
+                "field": "wizard_session_duration_hours",
+                "label": "登录会话保持时间（小时）",
+                "initValue": "12",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入会话保持时间"
+                    },
+                    {
+                        "pattern": "^[0-9]+$",
+                        "message": "请输入数字"
+                    },
+                    {
+                        "pattern": "^(?:[1-9]|[1-9]\\d|[1-6]\\d{2}|7[0-1]\\d|720)$",
+                        "message": "范围1-720小时"
+                    }
+                ]
+            },
+            {
+                "type": "tips",
+                "helpText": "AI 识别功能（可选）：从 <a target=\"_blank\" href=\"https://cloud.siliconflow.cn\">https://cloud.siliconflow.cn</a> 获取 API Key，可在管理页上传图片自动识别快递面单"
+            },
+            {
+                "type": "text",
+                "field": "wizard_siliconflow_api_key",
+                "label": "SiliconFlow API Key",
+                "initValue": ""
+            },
+            {
+                "type": "text",
+                "field": "wizard_siliconflow_model",
+                "label": "AI 模型",
+                "initValue": "Qwen/Qwen3.6-27B"
+            }
+        ]
+    }
+]

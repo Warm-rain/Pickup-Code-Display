@@ -1,0 +1,13 @@
+appname=pickup.codes
+version=1.2.2
+display_name=取件码展示
+desc=快递取件码管理系统，支持手动录入或AI录入取件码、实时展示、状态管理。实时同步推送，多分组视图，管理后台密码保护。
+platform=all
+source=thirdparty
+maintainer=YUNXI
+maintainer_url=https://github.com/YUNXI-fi/Pickup-Code-Display
+distributor=YUNXI
+distributor_url=http://www.myunxi.top
+desktop_uidir=ui
+desktop_applaunchname=pickup.codes.main
+install_dep_apps=nodejs_v22

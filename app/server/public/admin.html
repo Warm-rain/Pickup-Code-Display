@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理取件码</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { primary: '#2563eb' } } } }
+  </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-3">
+        <h1 class="text-3xl font-bold text-gray-800">取件码管理</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="accountBtn" class="text-primary hover:opacity-70 transition-opacity" title="添加账号" aria-label="添加账号">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-6 h-6"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37c1 .608 2.296.07 2.572-1.065"></path><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0-6 0"></path></g></svg>
+        </button>
+        <a href="." class="text-sm font-medium text-gray-500 border border-gray-300 rounded-lg px-3 py-1.5 hover:border-primary hover:text-primary transition-colors">返回</a>
+      </div>
+    </div>
+
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg hidden transition-opacity duration-300"></div>
+
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <button id="filterAll" class="px-4 py-1.5 rounded-full text-sm font-medium border transition-colors bg-primary text-white border-primary">全部</button>
+      <button id="filterToShip" class="px-4 py-1.5 rounded-full text-sm font-medium border transition-colors">待发货</button>
+      <button id="filterShipping" class="px-4 py-1.5 rounded-full text-sm font-medium border transition-colors">运输中</button>
+      <button id="filterPending" class="px-4 py-1.5 rounded-full text-sm font-medium border transition-colors">待取件</button>
+      <button id="filterPicked" class="px-4 py-1.5 rounded-full text-sm font-medium border transition-colors">已取件</button>
+      <button id="openAddBtn" class="ml-auto text-primary hover:opacity-70 transition-opacity" title="添加快递" aria-label="添加快递">
+        <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 48 48" class="w-7 h-7"><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4" data-swindex="0"><path d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"></path><path stroke-linecap="round" d="M24 16v16m-8-8h16"></path></g></svg>
+      </button>
+      <button id="refreshBtn" class="text-primary hover:opacity-70 transition-opacity" title="刷新快递状态并拉取新快递" aria-label="刷新快递状态并拉取新快递">
+        <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 20 20" class="w-7 h-7"><g fill="currentColor"><path d="M5.05 14.95a1 1 0 1 1 1.414-1.414A5 5 0 0 0 15 10a1 1 0 1 1 2 0a7 7 0 0 1-11.95 4.95Z"></path><path d="M13.559 12.832a1 1 0 1 1-1.11-1.664l3-2a1 1 0 1 1 1.11 1.664l-3 2Z"></path><path d="M18.832 12.445a1 1 0 0 1-1.664 1.11l-2-3a1 1 0 1 1 1.664-1.11l2 3Zm-3.975-7.594a1 1 0 1 1-1.414 1.414a5 5 0 0 0-8.536 3.536a1 1 0 1 1-2 0a7 7 0 0 1 11.95-4.95Z"></path><path d="M6.349 6.969a1 1 0 0 1 1.11 1.664l-3.001 2a1 1 0 1 1-1.11-1.664l3-2Z"></path><path d="M1.075 7.356a1 1 0 1 1 1.664-1.11l2 3a1 1 0 1 1-1.664 1.11l-2-3Z"></path></g></svg>
+      </button>
+    </div>
+
+    <div id="statusBar" class="text-center py-3 mb-6 rounded-lg text-sm hidden"></div>
+    <div id="list" class="space-y-2"></div>
+    <div id="empty" class="text-center py-16 text-gray-400 hidden">暂无数据</div>
+  </div>
+
+  <div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+    <div class="bg-white shadow-xl w-full h-full p-6 sm:h-auto sm:max-w-md sm:mx-4 sm:rounded-xl">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-700">添加快递</h2>
+        <button id="addCloseBtn" class="text-gray-400 hover:text-gray-600 text-2xl leading-none" aria-label="关闭">&times;</button>
+      </div>
+      <form id="addForm" class="grid grid-cols-1 gap-3">
+        <div id="recognizedPackages" class="flex flex-wrap gap-2 mb-1 hidden"></div>
+        <div class="flex flex-col gap-2">
+          <input name="pickup_code" placeholder="取件码 *" required
+                 class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+          <input name="company" placeholder="快递公司"
+                 class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+        </div>
+        <input name="recipient" placeholder="收件人 *" autocomplete="off"
+               class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+        <input name="phone" placeholder="手机尾号 *" autocomplete="off" inputmode="numeric" maxlength="4"
+               class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+        <input name="address" placeholder="取件地址 *" autocomplete="off"
+               class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+        <button type="button" id="submitBtn" class="rounded-lg px-4 py-2 transition-colors font-medium w-full sm:w-auto sm:self-start">添加</button>
+        <input type="file" accept="image/*" id="imageInput" class="hidden">
+      </form>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/40">
+    <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm mx-4">
+      <p class="text-gray-700 text-sm mb-5" id="confirmMessage">确定删除？</p>
+      <div class="flex justify-end gap-3">
+        <button id="confirmCancel" class="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">取消</button>
+        <button id="confirmOk" class="px-4 py-2 text-sm text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="accountModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+    <div class="bg-white rounded-xl shadow-xl p-6 pt-4 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-end mb-2">
+        <button id="accountCloseBtn" class="text-gray-400 hover:text-gray-600 text-2xl leading-none" aria-label="关闭">&times;</button>
+      </div>
+
+      <!-- 视图一：账号列表 -->
+      <div id="accountListView">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">账号管理</h2>
+        <div id="accountList" class="space-y-2">
+          <div class="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-700">淘宝</span>
+              <span id="syncBadge" class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">未配置</span>
+            </div>
+            <button id="taobaoConfigBtn" class="text-sm text-primary hover:underline">配置</button>
+          </div>
+          <div class="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-700">拼多多</span>
+              <span id="pddBadge" class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">未配置</span>
+            </div>
+            <button id="pddConfigBtn" class="text-sm text-primary hover:underline">配置</button>
+          </div>
+        </div>
+        <button id="addAccountBtn" class="w-full mt-5 rounded-lg px-4 py-2.5 text-sm bg-primary text-white hover:bg-blue-700 transition-colors font-medium">添加账号</button>
+      </div>
+
+      <!-- 视图二：选择平台 -->
+      <div id="platformPickerView" class="hidden">
+        <div class="flex items-center gap-2 mb-4">
+          <button class="view-back-btn text-gray-400 hover:text-gray-600 text-lg leading-none" data-back="list" aria-label="返回">&larr;</button>
+          <h2 class="text-lg font-semibold text-gray-700">选择平台</h2>
+        </div>
+        <div class="space-y-2">
+          <button class="platform-option w-full flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3 hover:border-primary hover:bg-blue-50/40 transition-colors" data-platform="taobao">
+            <span class="text-sm font-medium text-gray-700">淘宝</span>
+            <span class="text-xs text-gray-400">已支持</span>
+          </button>
+          <button class="platform-option w-full flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3 hover:border-primary hover:bg-blue-50/40 transition-colors" data-platform="pdd">
+            <span class="text-sm font-medium text-gray-700">拼多多</span>
+            <span class="text-xs text-gray-400">已支持</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 视图三：淘宝 · 添加方式 -->
+      <div id="taobaoAddView" class="hidden">
+        <div class="flex items-center gap-2 mb-4">
+          <button class="view-back-btn text-gray-400 hover:text-gray-600 text-lg leading-none" data-back="picker" aria-label="返回">&larr;</button>
+          <h2 class="text-lg font-semibold text-gray-700">淘宝 · 添加账号</h2>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">浏览器登录 taobao.com 后按 F12 → Network → 任意请求 → 复制 Cookie</p>
+        <div class="mb-4">
+          <textarea id="taobaoCookie" rows="4" spellcheck="false"
+            class="border border-gray-300 rounded-lg px-3 py-2 w-full font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            placeholder="_m_h5_tk=...; _m_h5_tk_enc=...; cookie2=...; unb=..."></textarea>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <button id="scanLoginBtn" class="rounded-lg px-4 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">扫码登录淘宝</button>
+            <button id="saveCookieBtn" class="rounded-lg px-4 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">保存 Cookie</button>
+          </div>
+          <div id="qrPanel" class="mt-4 hidden">
+            <div class="flex items-start gap-4">
+              <img id="qrImg" alt="淘宝登录二维码" class="w-40 h-40 rounded-lg border border-gray-200 bg-white">
+              <div class="text-sm">
+                <p id="qrStatus" class="text-gray-600">请用手机淘宝「扫一扫」</p>
+                <button id="qrRefreshBtn" class="mt-3 text-sm text-primary hover:underline hidden">刷新二维码</button>
+              </div>
+            </div>
+          </div>
+          <button id="taobaoDeleteBtn" class="mt-3 text-sm text-red-500 hover:underline">删除账号</button>
+        </div>
+      </div>
+
+      <!-- 视图五：拼多多 · 添加方式 -->
+      <div id="pddAddView" class="hidden">
+        <div class="flex items-center gap-2 mb-4">
+          <button class="view-back-btn text-gray-400 hover:text-gray-600 text-lg leading-none" data-back="picker" aria-label="返回">&larr;</button>
+          <h2 class="text-lg font-semibold text-gray-700">拼多多 · 添加账号</h2>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">将浏览器 UA 切换为 iPad 后登录 mobile.yangkeduo.com，按 F12 → Network → 任意请求 → 复制 Cookie</p>
+        <div class="mb-4">
+          <textarea id="pddCookie" rows="4" spellcheck="false"
+            class="border border-gray-300 rounded-lg px-3 py-2 w-full font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            placeholder="PDDAccessToken=...; pdd_user_id=...; pdd_user_uin=..."></textarea>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <button id="savePddCookieBtn" class="rounded-lg px-4 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">保存 Cookie</button>
+          </div>
+          <button id="pddDeleteBtn" class="mt-3 text-sm text-red-500 hover:underline">删除账号</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="max-w-4xl mx-auto px-4 pb-8 text-center text-xs text-gray-400">
+    Powered By <a href="https://github.com/YUNXI-fi/Pickup-Code-Display" target="_blank" rel="noopener" class="hover:text-primary transition-colors">YUNXI</a>
+  </footer>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

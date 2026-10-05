@@ -1,0 +1,25 @@
+#!/bin/bash
+
+NODE=""
+for p in \
+    /var/apps/nodejs_v22/target/bin/node \
+    /var/apps/nodejs_v20/target/bin/node \
+    /var/apps/nodejs_v18/target/bin/node \
+    /usr/local/bin/node \
+    /usr/bin/node; do
+    if [ -x "$p" ]; then
+        NODE="$p"
+        break
+    fi
+done
+
+if [ -z "$NODE" ]; then
+    which node 2>/dev/null && NODE="node"
+fi
+
+if [ -z "$NODE" ]; then
+    echo "Node.js 未安装，请先在应用中心安装 nodejs_v22 依赖" > ${TRIM_TEMP_LOGFILE}
+    exit 1
+fi
+
+exit 0

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+LOG_FILE="${TRIM_PKGVAR}/info.log"
+PID_FILE="${TRIM_PKGVAR}/app.pid"
+
+export PATH=/var/apps/nodejs_v22/target/bin:/var/apps/nodejs_v20/target/bin:/var/apps/nodejs_v18/target/bin:/usr/local/bin:/usr/bin:$PATH
+
+NODE="$(command -v node 2>/dev/null)"
+
+export ADMIN_PASSWORD="${wizard_admin_password}"
+export SESSION_DURATION_HOURS="${wizard_session_duration_hours:-12}"
+export SILICONFLOW_API_KEY="${wizard_siliconflow_api_key}"
+export SILICONFLOW_MODEL="${wizard_siliconflow_model:-Qwen/Qwen3.6-27B}"
+
+case $1 in
+start)
+    if [ -z "$NODE" ]; then
+        echo "Node.js 环境不可用，请先确认已安装并启动 nodejs_v22 依赖应用" > "${TRIM_TEMP_LOGFILE}"
+        exit 1
+    fi
+    cd "${TRIM_APPDEST}/server"
+    nohup "$NODE" server.js >> "${LOG_FILE}" 2>&1 &
+    printf "%s" "$!" > ${PID_FILE}
+    exit 0
+    ;;
+stop)
+    if [ -f "${PID_FILE}" ]; then
+        pid=$(cat ${PID_FILE})
+        kill $pid 2>/dev/null
+        rm -f ${PID_FILE}
+    fi
+    exit 0
+    ;;
+status)
+    if [ -f "${PID_FILE}" ]; then
+        pid=$(cat ${PID_FILE})
+        if kill -0 $pid 2>/dev/null; then
+            exit 0
+        fi
+        rm -f ${PID_FILE}
+    fi
+    exit 3
+    ;;
+*)
+    exit 1
+    ;;
+esac
