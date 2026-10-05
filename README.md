@@ -1,6 +1,6 @@
 # 取件码展示（Pickup Code Display）
 
-> 一款面向飞牛 fnOS 的快递取件码管理系统，支持**手动录入**与 **AI 拍照识别**，提供实时大屏展示、分组视图与状态管理，适用于驿站、代收点等场景。
+> 一款面向飞牛 fnOS 的快递取件码管理系统，支持**手动录入**、**AI 拍照识别**与**淘宝 / 拼多多订单自动采集**，提供实时大屏展示、分组视图与状态管理，适用于驿站、代收点等场景。
 
 - 应用标识：`pickup.codes`
 - 当前版本：`1.2.3`
@@ -32,8 +32,18 @@
 - **手动录入**：填写取件码、快递公司、收件人、手机尾号、取件地址，一键添加
 - **AI 识别录入**：上传快递面单照片，自动识别取件码、快递公司与取件地址（基于 SiliconFlow 视觉大模型）
 - **历史自动补全**：录入收件人 / 手机尾号 / 取件地址时，自动联想历史记录，减少重复输入
-- **状态管理**：待取件 / 已取件 / 已恢复（误点取件可恢复为待取件）
+- **状态管理**：待发货 → 运输中 → 待取件 → 已取件 全链路跟踪，误点取件可恢复
 - **数据持久化**：数据存储在本地 SQLite 数据库，随应用持久保存
+
+### 订单自动采集
+
+登录电商账号后一键同步在途订单，无需手动录入即可自动补齐取件码、运单号与驿站信息。
+
+- **淘宝**：支持扫码登录（二维码由服务端本地渲染，登录凭证不外传）或粘贴浏览器 Cookie 两种方式；自动同步在途订单，提取运单号、取件码、快递公司、驿站、收件人及手机号
+- **拼多多**：粘贴浏览器 Cookie 接入，自动分页同步订单，仅导入已生成取件码的包裹
+- **状态只前进**：待发货 → 运输中 → 待取件，已取件为终态，不会被采集覆盖
+- **一键刷新**：手动刷新可拉取新快递、更新取件码与物流状态
+- **账号管理**：管理页统一管理淘宝 / 拼多多账号，支持配置与删除
 
 ### 🖥️ 实时大屏展示
 
@@ -50,9 +60,9 @@
 
 ### 🛠️ 飞牛 fnOS 深度集成
 
-- 支持应用商店安装向导（端口、密码、AI 配置可视化填写）
+- 支持应用商店安装向导（密码、会话时长、AI 配置可视化填写）
 - 随系统开机自启、异常状态检测（start / stop / status 生命周期脚本）
-- 通过 fnOS 网关反向代理访问，支持应用图标与桌面入口
+- 通过 fnOS 统一网关（Unix Socket）反向代理访问，不对外暴露端口，支持应用图标与桌面入口
 
 ---
 
@@ -69,6 +79,7 @@
 | 前端 | 原生 HTML + JavaScript | 无需构建，开箱即用 |
 | 样式 | Tailwind CSS（CDN） | 响应式界面 |
 | AI 识别 | SiliconFlow 视觉大模型 API | 快递面单 OCR 结构化识别 |
+| 订单采集 | 淘宝 / 拼多多 H5 接口 | 扫码或 Cookie 登录，自动同步在途订单与取件码 |
 | 平台 | 飞牛 fnOS | manifest + 生命周期脚本打包为系统应用 |
 
 ### 架构概览
@@ -83,16 +94,17 @@
                  Express 服务
               (app/server/server.js)
                       │
-        ┌─────────────┼─────────────┐
-        │             │             │
-   REST API      SSE 推送      AI 识别转发
-  (routes/packages)  (events)   (SiliconFlow)
+        ┌──────────┬──┴───────┬──────────────┐
+        │          │          │              │
+   REST API    SSE 推送   AI 识别转发     订单采集
+  (packages)   (events)  (SiliconFlow) (淘宝/拼多多)
         │
    sql.js 数据库 (data.db)
 ```
 
 - 服务端采用**无状态单进程**架构，所有数据经由 `db.js` 统一访问 SQLite
 - 数据变更通过 `broadcast()` 向所有 SSE 客户端广播，实现多端实时同步
+- 订单采集按订单号 / 运单号去重，状态只前进，避免重复导入与状态回退
 - 支持 fnOS 网关前缀（`/app/pickup-codes`）自动剥离，同一代码可本地直跑或作为系统应用运行
 
 ---
@@ -110,7 +122,7 @@
 | --- | --- |
 | Node.js | ≥ 18.0.0 |
 | npm | 随 Node.js 附带 |
-| 网络 | 如需 AI 识别功能，需可访问 `api.siliconflow.cn` |
+| 网络 | 如需 AI 识别需可访问 `api.siliconflow.cn`；如需订单采集需可访问淘宝 / 拼多多 |
 
 > 无需额外数据库服务，数据存储于本地文件 `data.db`。
 
@@ -175,6 +187,8 @@ SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 ```
 
 > 获取 SiliconFlow API Key：前往 <https://cloud.siliconflow.cn> 注册并创建密钥。
+>
+> 淘宝 / 拼多多账号不通过环境变量配置，而是在管理页「账号」中登录或粘贴 Cookie。
 
 ---
 
@@ -208,9 +222,32 @@ SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 
 - 点击包裹上的「已取件 / 恢复」切换状态
 - 点击「删除」弹出确认框，确认后删除
-- 顶部筛选按钮可切换 全部 / 待取件 / 已取件 列表
+- 顶部筛选按钮可切换 全部 / 待发货 / 运输中 / 待取件 / 已取件 列表
+- 点击顶部「刷新」按钮，一键拉取新快递、刷新取件码并同步拼多多订单
 
-### 3. 操作示例
+### 3. 淘宝 / 拼多多订单同步
+
+在管理页右上角点击「账号」图标进入账号管理。
+
+**添加淘宝账号：**
+
+1. 点击「添加账号」→ 选择「淘宝」
+2. 选择一种登录方式：
+   - **扫码登录**：点击「扫码登录淘宝」，用手机淘宝「扫一扫」确认登录
+   - **粘贴 Cookie**：浏览器登录 taobao.com 后按 F12 → Network → 任意请求 → 复制 Cookie，粘贴后点击「保存 Cookie」
+3. 保存成功后，「淘宝」状态显示为「已配置」
+
+**添加拼多多账号：**
+
+1. 点击「添加账号」→ 选择「拼多多」
+2. 将浏览器 UA 切换为 iPad 后登录 `mobile.yangkeduo.com`，按 F12 → Network → 任意请求 → 复制 Cookie，粘贴后点击「保存 Cookie」
+
+**同步订单：**
+
+- 回到管理页，点击顶部「刷新」按钮，将自动拉取淘宝在途订单、刷新取件码并同步拼多多订单
+- 在账号管理中选择「删除账号」可清除已保存的登录凭证
+
+### 4. 操作示例
 
 添加一个包裹并取件的完整流程：
 
@@ -233,6 +270,8 @@ SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 
 所有接口均挂载在 `/api` 下，管理类接口需携带 `x-admin-password` 请求头（或使用 `?pw=` 查询参数）。
 
+### 包裹与展示
+
 | 方法 | 路径 | 鉴权 | 说明 |
 | --- | --- | --- | --- |
 | GET | `/api/packages` | 否 | 获取包裹列表（`?status=all` 返回全部，默认仅待取件） |
@@ -245,6 +284,27 @@ SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 | GET | `/api/history?field=` | 否 | 历史联想（`recipient` / `phone` / `address`） |
 | GET | `/api/check-password` | 否 | 校验管理密码 |
 
+### 淘宝订单采集
+
+| 方法 | 路径 | 鉴权 | 说明 |
+| --- | --- | --- | --- |
+| GET | `/api/express/status` | 是 | 查询淘宝账号配置与最近同步记录 |
+| POST | `/api/express/cookie` | 是 | 保存淘宝 Cookie |
+| DELETE | `/api/express/cookie` | 是 | 删除淘宝账号 |
+| POST | `/api/express/qrcode` | 是 | 生成淘宝扫码登录二维码 |
+| GET | `/api/express/qrcode/:sid` | 是 | 轮询扫码登录状态 |
+| POST | `/api/express/sync` | 是 | 同步在途订单（新增 / 升级包裹） |
+| POST | `/api/express/fill-codes` | 是 | 刷新待取包裹的取件码与物流信息 |
+
+### 拼多多订单采集
+
+| 方法 | 路径 | 鉴权 | 说明 |
+| --- | --- | --- | --- |
+| GET | `/api/pdd/status` | 是 | 查询拼多多账号配置 |
+| POST | `/api/pdd/cookie` | 是 | 保存拼多多 Cookie |
+| DELETE | `/api/pdd/cookie` | 是 | 删除拼多多账号 |
+| POST | `/api/pdd/sync` | 是 | 同步订单（仅导入已生成取件码的包裹） |
+
 ---
 
 ## 项目目录结构
@@ -253,17 +313,23 @@ SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 取件码展示/
 ├── app/
 │   ├── server/                # 后端服务（独立可运行）
-│   │   ├── server.js          # Express 入口、鉴权、静态资源、网关前缀
-│   │   ├── db.js              # sql.js 数据库封装（初始化 / 增删改查）
+│   │   ├── server.js          # Express 入口、鉴权、静态资源、网关前缀、Unix Socket
+│   │   ├── db.js              # sql.js 数据库封装（初始化 / 迁移 / 增删改查）
+│   │   ├── sse.js             # SSE 客户端管理与广播
+│   │   ├── taobao.js          # 淘宝订单 / 物流页采集
+│   │   ├── taobaoLogin.js     # 淘宝扫码登录状态机
+│   │   ├── pdd.js             # 拼多多订单采集
 │   │   ├── routes/
-│   │   │   └── packages.js    # REST API + SSE 广播 + AI 识别转发
+│   │   │   ├── packages.js    # 包裹 REST API + SSE + AI 识别转发
+│   │   │   ├── express.js     # 淘宝账号 / 扫码登录 / 订单同步
+│   │   │   └── pdd.js         # 拼多多账号 / 订单同步
 │   │   ├── public/            # 前端页面
 │   │   │   ├── index.html     # 展示页（大屏）
 │   │   │   ├── admin.html     # 管理页
 │   │   │   ├── css/tailwind.css
 │   │   │   └── js/
 │   │   │       ├── app.js     # 展示页逻辑（分组、筛选、SSE、取件）
-│   │   │       └── admin.js   # 管理页逻辑（表单、联想、AI 识别、增删改）
+│   │   │       └── admin.js   # 管理页逻辑（表单、联想、AI 识别、账号与订单同步）
 │   │   ├── .env.example       # 环境变量模板
 │   │   └── package.json
 │   └── ui/                    # fnOS 桌面入口配置与图标
@@ -275,9 +341,10 @@ SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 ├── config/
 │   ├── privilege              # 运行用户与权限
 │   └── resource
-├── wizard/                    # 安装向导表单（端口、密码、AI 配置）
-├── manifest                   # fnOS 应用清单（元数据、依赖、端口）
+├── wizard/                    # 安装向导表单（密码、会话、AI 配置）
+├── manifest                   # fnOS 应用清单（元数据、依赖）
 ├── ICON.PNG / ICON_256.PNG    # 应用图标
+├── CHANGELOG.md               # 更新日志
 ├── LICENSE                    # 许可协议
 └── README.md
 ```
