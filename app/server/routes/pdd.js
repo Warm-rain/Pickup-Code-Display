@@ -103,6 +103,7 @@ module.exports = function (app) {
             phone: '',
             address: '',
             goods_name: pdd.goodsNameOf(o),
+            source_platform: 'pdd',
           })
           if (r.created || r.promoted) {
             const row = stmts.getById.get(r.id)

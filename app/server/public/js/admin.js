@@ -397,11 +397,13 @@ function render() {
     // 待发货/运输中没有取件码，退回展示商品名或状态文案
     const title = p.pickup_code || p.goods_name || meta.label
     const titleCls = !p.pickup_code ? 'text-lg text-gray-600' : (picked ? 'text-gray-400' : 'text-gray-800')
+    const platform = { taobao: '淘宝', pdd: '拼多多', manual: '手动' }[p.source_platform] || '手动'
     return `
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between ${picked ? 'opacity-60' : ''}" data-id="${p.id}">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-3">
             <span class="text-xs ${meta.badge} px-2 py-0.5 rounded-full flex-shrink-0">${meta.label}</span>
+            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full flex-shrink-0">${platform}</span>
             <span class="text-xl font-mono font-bold tracking-widest ${titleCls} truncate">${escapeHtml(title)}</span>
           </div>
           <div class="mt-1 text-sm text-gray-500">

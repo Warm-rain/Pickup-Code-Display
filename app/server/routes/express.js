@@ -169,7 +169,7 @@ module.exports = function (app) {
 
           // 待发货：尚无运单号与取件码，仅入库跟踪状态
           if (isToShip(o)) {
-            commit(upsertPackage({ order_id: o.orderId, status: 'to_ship', goods_name: o.goodsName }))
+            commit(upsertPackage({ order_id: o.orderId, status: 'to_ship', goods_name: o.goodsName, source_platform: 'taobao' }))
             continue
           }
 
@@ -208,6 +208,7 @@ module.exports = function (app) {
             phone: parcel.phone || '',
             address: parcel.station || '',
             goods_name: o.goodsName,
+            source_platform: 'taobao',
           }))
         }
         if (orders.length < 10) break
