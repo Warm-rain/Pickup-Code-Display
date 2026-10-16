@@ -15,6 +15,7 @@ function list(platform) {
     if (legacy && legacy.value) {
       const account = { id: 'default', name: `${platform === 'taobao' ? '淘宝' : '拼多多'}账号 1`, cookie: legacy.value, created_at: new Date().toISOString() }
       stmts.setSetting.run({ key: key(platform, account.id), value: JSON.stringify(account) })
+      stmts.deleteSetting.run(legacyKey(platform))
       rows.push(account)
     }
   }
@@ -26,7 +27,11 @@ function save(platform, account) {
   stmts.setSetting.run({ key: key(platform, account.id), value: JSON.stringify(account) })
   return account
 }
-function remove(platform, id) { stmts.deleteSetting.run(key(platform, id)) }
+function remove(platform, id) {
+  stmts.deleteSetting.run(key(platform, id))
+  // Prevent the deleted legacy single-account value from being migrated back.
+  stmts.deleteSetting.run(legacyKey(platform))
+}
 function normalizeId(id) { return String(id || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || crypto.randomUUID() }
 
 module.exports = { list, get, save, remove, normalizeId }
