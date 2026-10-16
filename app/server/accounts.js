@@ -9,6 +9,9 @@ function list(platform) {
   const rows = stmts.allSettings.all().filter(r => r.key.startsWith(prefix)).map(r => {
     try { return JSON.parse(r.value) } catch (_) { return null }
   }).filter(Boolean)
+  // Once the account-scoped format exists, the legacy single-cookie key must
+  // not be allowed to recreate a deleted account later.
+  if (rows.length) stmts.deleteSetting.run(legacyKey(platform))
   // Upgrade the former single-cookie setting on first read.
   if (!rows.length) {
     const legacy = stmts.getSetting.get(legacyKey(platform))
