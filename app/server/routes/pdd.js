@@ -86,17 +86,17 @@ module.exports = function (app) {
           if (!o.order_sn || seen.has(o.order_sn)) continue
           seen.add(o.order_sn)
 
-          // 只有真正拿到取件码才入库（与淘宝渠道同规则：避免占位噪音）
+          // 有取件码时进入待取件；只有运单号时先进入运输中，后续刷新可补取件码。
           const pick = await pdd.fetchPickupCode(account.cookie, o)
-          if (!pick.code) {
-            skipped.push({ order_id: o.order_sn, reason: '尚未生成取件码' })
+          if (!pick.code && !o.tracking_number) {
+            skipped.push({ order_id: o.order_sn, reason: '尚未发货或未生成取件码' })
             continue
           }
 
           const r = upsertPackage({
             order_id: o.order_sn,
             mail_no: o.tracking_number || '',
-            status: 'pending',
+            status: pick.code ? 'pending' : 'shipping',
             pickup_code: pick.code,
             company: '',
             recipient: '',
