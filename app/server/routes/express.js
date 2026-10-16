@@ -248,6 +248,9 @@ module.exports = function (app) {
         continue
       }
       const code = parcel.pickupCode || ''
+      // 仅当本次新拿到取件码才计入 filled，避免把仍在运输（无取件码）的包裹
+      // 也算作「刷新取件码」，导致提示数量与列表实际不符
+      const gotCode = !!code && !row.pickup_code
       stmts.updateExpressInfo.run({
         id: row.id,
         pickup_code: code,
@@ -257,18 +260,20 @@ module.exports = function (app) {
         address: parcel.station || '',
       })
       // 运输中的包裹一旦取到取件码即已到驿站，推进为待取件
-      if (code && row.status === 'shipping') {
+      if (gotCode && row.status === 'shipping') {
         stmts.promoteStatus.run({ id: row.id, status: 'pending' })
       }
       const updated = stmts.getById.get(row.id)
-      filled.push({
-        id: row.id,
-        mail_no: row.mail_no,
-        pickup_code: updated.pickup_code,
-        address: updated.address,
-        recipient: updated.recipient,
-        phone: updated.phone,
-      })
+      if (gotCode) {
+        filled.push({
+          id: row.id,
+          mail_no: row.mail_no,
+          pickup_code: updated.pickup_code,
+          address: updated.address,
+          recipient: updated.recipient,
+          phone: updated.phone,
+        })
+      }
       broadcast('update', updated)
     }
 
