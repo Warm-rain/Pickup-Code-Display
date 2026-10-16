@@ -659,6 +659,10 @@ const qrPanel = document.getElementById('qrPanel')
 const qrImg = document.getElementById('qrImg')
 const qrStatus = document.getElementById('qrStatus')
 const qrRefreshBtn = document.getElementById('qrRefreshBtn')
+let activeAccountId = null
+let activePlatform = null
+let taobaoAccounts = []
+let pddAccounts = []
 
 function setBadge(el, configured) {
   el.textContent = configured ? 'Cookie 已配置' : '未配置'
@@ -670,11 +674,11 @@ function setBadge(el, configured) {
 async function loadExpressStatus() {
   try {
     const res = await authFetch('api/express/status')
-    if (res.ok) setBadge(syncBadge, (await res.json()).cookie_set)
+    if (res.ok) { const data = await res.json(); taobaoAccounts = data.accounts || []; setBadge(syncBadge, taobaoAccounts.length > 0); syncBadge.textContent = taobaoAccounts.length ? `${taobaoAccounts.length} 个账号` : '未配置' }
   } catch (e) {}
   try {
     const res = await authFetch('api/pdd/status')
-    if (res.ok) setBadge(pddBadge, (await res.json()).cookie_set)
+    if (res.ok) { const data = await res.json(); pddAccounts = data.accounts || []; setBadge(pddBadge, pddAccounts.length > 0); pddBadge.textContent = pddAccounts.length ? `${pddAccounts.length} 个账号` : '未配置' }
   } catch (e) {}
 }
 
@@ -686,7 +690,7 @@ saveCookieBtn.addEventListener('click', async () => {
     const res = await authFetch('api/express/cookie', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cookie }),
+      body: JSON.stringify({ cookie, account_id: activeAccountId || undefined, name: activeAccountId ? undefined : (prompt('请输入淘宝账号名称', '淘宝账号') || '淘宝账号') }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || '保存失败')
@@ -704,7 +708,8 @@ const taobaoDeleteBtn = document.getElementById('taobaoDeleteBtn')
 taobaoDeleteBtn.addEventListener('click', async () => {
   if (!await showConfirm('确定删除淘宝账号？将清除已保存的 Cookie。')) return
   try {
-    const res = await authFetch('api/express/cookie', { method: 'DELETE' })
+    const url = activeAccountId ? `api/express/cookie?account_id=${encodeURIComponent(activeAccountId)}` : 'api/express/cookie'
+    const res = await authFetch(url, { method: 'DELETE' })
     if (!res.ok) throw new Error('删除失败')
     showToast('已删除淘宝账号', true)
     showAccountView('list')
@@ -733,7 +738,7 @@ async function startScanLogin() {
   qrRefreshBtn.classList.add('hidden')
   qrPanel.classList.remove('hidden')
   try {
-    const res = await authFetch('api/express/qrcode', { method: 'POST' })
+    const res = await authFetch('api/express/qrcode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ account_id: activeAccountId || undefined }) })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || '获取二维码失败')
     qrSessionId = data.session_id
@@ -828,9 +833,9 @@ accountModal.addEventListener('click', e => {
   if (e.target === accountModal) closeAccountModal()
 })
 
-addAccountBtn.addEventListener('click', () => showAccountView('picker'))
-taobaoConfigBtn.addEventListener('click', () => showAccountView('taobao'))
-pddConfigBtn.addEventListener('click', () => showAccountView('pdd'))
+addAccountBtn.addEventListener('click', () => { activeAccountId = null; showAccountView('picker') })
+taobaoConfigBtn.addEventListener('click', () => { activePlatform = 'taobao'; activeAccountId = taobaoAccounts[0]?.id || null; showAccountView('taobao') })
+pddConfigBtn.addEventListener('click', () => { activePlatform = 'pdd'; activeAccountId = pddAccounts[0]?.id || null; showAccountView('pdd') })
 
 document.querySelectorAll('.view-back-btn').forEach(btn => {
   btn.addEventListener('click', () => showAccountView(btn.dataset.back))
@@ -862,7 +867,7 @@ savePddCookieBtn.addEventListener('click', async () => {
     const res = await authFetch('api/pdd/cookie', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cookie }),
+    body: JSON.stringify({ cookie, account_id: activeAccountId || undefined, name: activeAccountId ? undefined : (prompt('请输入拼多多账号名称', '拼多多账号') || '拼多多账号') }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || '保存失败')
@@ -879,7 +884,8 @@ const pddDeleteBtn = document.getElementById('pddDeleteBtn')
 pddDeleteBtn.addEventListener('click', async () => {
   if (!await showConfirm('确定删除拼多多账号？将清除已保存的 Cookie。')) return
   try {
-    const res = await authFetch('api/pdd/cookie', { method: 'DELETE' })
+    const url = activeAccountId ? `api/pdd/cookie?account_id=${encodeURIComponent(activeAccountId)}` : 'api/pdd/cookie'
+    const res = await authFetch(url, { method: 'DELETE' })
     if (!res.ok) throw new Error('删除失败')
     showToast('已删除拼多多账号', true)
     showAccountView('list')

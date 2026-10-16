@@ -150,6 +150,7 @@ const stmts = {
 
   setSetting: { run: (v) => prepare('INSERT INTO settings (key, value) VALUES (@key, @value) ON CONFLICT(key) DO UPDATE SET value = @value').run({ key: v.key, value: v.value }) },
   getSetting: { get: (k) => prepare('SELECT value FROM settings WHERE key = ?').get([k]) },
+  allSettings: { all: () => prepare('SELECT key, value FROM settings ORDER BY key').all() },
   deleteSetting: { run: (k) => prepare('DELETE FROM settings WHERE key = ?').run([k]) },
 }
 
