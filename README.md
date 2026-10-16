@@ -190,7 +190,7 @@ SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 
 > 获取 SiliconFlow API Key：前往 <https://cloud.siliconflow.cn> 注册并创建密钥。
 >
-> 淘宝 / 拼多多账号不通过环境变量配置，而是在管理页「账号」中登录或粘贴 Cookie。
+> 淘宝 / 拼多多账号不通过环境变量配置，而是在管理页的账号管理（右上角齿轮按钮）中登录或粘贴 Cookie。
 
 ---
 
@@ -242,8 +242,18 @@ SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 
 **添加拼多多账号：**
 
+拼多多暂不支持扫码登录，需在浏览器登录网页版后复制 Cookie（仅首次接入或登录失效时需要）。
+
 1. 点击「添加账号」→ 选择「拼多多」
-2. 将浏览器 UA 切换为 iPad 后登录 `mobile.yangkeduo.com`，按 F12 → Network → 任意请求 → 复制 Cookie（需包含 `PDDAccessToken` 与 `pdd_user_id`），粘贴后点击「保存 Cookie」
+2. 按 F12 打开开发者工具，再按 `Ctrl+Shift+M`（Mac 为 `Cmd+Shift+M`）开启设备模拟，选择 **iPad** 等移动设备——网页版仅对移动端 UA 正常开放
+3. 在设备模拟窗口中打开 `https://mobile.yangkeduo.com` 并登录（可用拼多多 App 扫码或手机号验证码）
+4. 切到 **Network** 面板，刷新页面，点击任意一个 `mobile.yangkeduo.com` 请求（如 `orders.html`）→ **Headers → Request Headers**，复制 `Cookie:` 后的完整值
+5. 粘贴回管理页输入框，点击「保存 Cookie」：
+   - 必含字段：`PDDAccessToken`（登录凭证）与 `pdd_user_id`（用户标识），缺任一项会被拒绝并给出对应提示
+   - 直接整段粘贴 `k=v; k=v; …` 即可，换行与多余空白会自动处理，无需手工整理
+6. 保存成功后，「拼多多」状态显示为「Cookie 已配置」
+
+> 常见提示含义：提示缺少字段 = 未登录成功或复制不完整（登录成功后 Cookie 才会包含 `PDDAccessToken`）；同步时报「拼多多登录态已失效」= Cookie 已过期，按上述步骤重新登录复制即可。
 
 **同步订单：**
 
