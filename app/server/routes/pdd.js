@@ -9,6 +9,29 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || ''
 // 与淘宝渠道同构：状态只前进，已取件为终态
 const STATUS_RANK = { to_ship: 1, shipping: 2, pending: 3, picked_up: 4 }
 
+function isCompleted(order) {
+  const prompt = String(order.order_status_prompt || '')
+  return Number(order.shipping_status) >= 2
+    || Number(order.status) >= 4
+    || Number(order.receive_time) > 0
+    || /已签收|交易成功|待评价|已评价|已完成|退款|交易关闭/.test(prompt)
+}
+
+function dedupePddPackages() {
+  const rows = stmts.all.all().filter(r => r.source_platform === 'pdd')
+  const seen = new Map()
+  for (const row of rows) {
+    const keys = [row.order_id, row.mail_no].filter(Boolean).map(String)
+    const duplicate = keys.some(k => seen.has(k))
+    if (duplicate) {
+      stmts.remove.run(row.id)
+      broadcast('delete', row)
+      continue
+    }
+    keys.forEach(k => seen.set(k, row.id))
+  }
+}
+
 function requireAuth(req, res, next) {
   if (!ADMIN_PASSWORD) return next()
   if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return res.status(401).json({ error: '未授权' })
@@ -74,6 +97,7 @@ module.exports = function (app) {
     const created = []
     const skipped = []
     const seen = new Set()
+    dedupePddPackages()
 
     try {
       for (const account of targets) {
@@ -85,6 +109,16 @@ module.exports = function (app) {
         for (const o of orders) {
           if (!o.order_sn || seen.has(o.order_sn)) continue
           seen.add(o.order_sn)
+
+          if (isCompleted(o)) {
+            const existing = stmts.getByOrderId.get(o.order_sn)
+            if (existing && existing.source_platform === 'pdd' && existing.status !== 'picked_up') {
+              stmts.remove.run(existing.id)
+              broadcast('delete', existing)
+            }
+            skipped.push({ order_id: o.order_sn, reason: o.order_status_prompt || '已签收/已完成' })
+            continue
+          }
 
           // 有取件码时进入待取件；只有运单号时先进入运输中，后续刷新可补取件码。
           const pick = await pdd.fetchPickupCode(account.cookie, o)
