@@ -9,12 +9,15 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || ''
 // 与淘宝渠道同构：状态只前进，已取件为终态
 const STATUS_RANK = { to_ship: 1, shipping: 2, pending: 3, picked_up: 4 }
 
+const TO_SHIP_PATTERNS = ['待发货', '等待发货', '待卖家发货']
+const IN_TRANSIT_PROMPTS = ['待发货', '等待发货', '待卖家发货', '待收货']
+
 function isCompleted(order) {
   const prompt = String(order.order_status_prompt || '')
   return Number(order.shipping_status) >= 2
     || Number(order.status) >= 4
     || Number(order.receive_time) > 0
-    || /已签收|交易成功|待评价|已评价|已完成|退款|交易关闭/.test(prompt)
+    || /已签收|交易成功|交易完成|待评价|已评价|已完成|退款|交易关闭/.test(prompt)
 }
 
 function dedupePddPackages() {
@@ -110,6 +113,7 @@ module.exports = function (app) {
           if (!o.order_sn || seen.has(o.order_sn)) continue
           seen.add(o.order_sn)
 
+          const prompt = String(o.order_status_prompt || '')
           if (isCompleted(o)) {
             const existing = stmts.getByOrderId.get(o.order_sn)
             if (existing && existing.source_platform === 'pdd' && existing.status !== 'picked_up') {
@@ -120,18 +124,25 @@ module.exports = function (app) {
             continue
           }
 
-          // 有取件码时进入待取件；只有运单号时先进入运输中，后续刷新可补取件码。
-          const pick = await pdd.fetchPickupCode(account.cookie, o)
-          if (!pick.code && !o.tracking_number) {
-            skipped.push({ order_id: o.order_sn, reason: '尚未发货或未生成取件码' })
+          if (!IN_TRANSIT_PROMPTS.some(p => prompt.includes(p))) {
+            skipped.push({ order_id: o.order_sn, reason: prompt || '非在途' })
             continue
           }
 
+          // 与淘宝渠道一致：在途订单也入库跟踪；
+          // 到驿站/柜后 cabinet 接口返回取件码，否则为空
+          let code = ''
+          if (o.tracking_number) {
+            const pick = await pdd.fetchPickupCode(account.cookie, o)
+            code = pick.code
+          }
+
+          const toShip = !o.tracking_number || TO_SHIP_PATTERNS.some(p => prompt.includes(p))
           const r = upsertPackage({
             order_id: o.order_sn,
             mail_no: o.tracking_number || '',
-            status: pick.code ? 'pending' : 'shipping',
-            pickup_code: pick.code,
+            status: code ? 'pending' : (toShip ? 'to_ship' : 'shipping'),
+            pickup_code: code,
             company: '',
             recipient: '',
             phone: '',
